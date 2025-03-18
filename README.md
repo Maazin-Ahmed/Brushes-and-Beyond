@@ -23,3 +23,4 @@ Brushes and Beyond is an e-commerce platform for handmade arts and crafts, speci
 ## Project Structure
 
 # Brushes-and-Beyond
+# Brushes-and-Beyond
