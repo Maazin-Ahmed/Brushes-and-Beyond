@@ -23,19 +23,22 @@ exports.submitContactForm = async (req, res, next) => {
     })
 
     // Send email notification
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    })
+    let transporter
+    try {
+      transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      })
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: process.env.ADMIN_EMAIL || process.env.EMAIL_USER,
-      subject: `New Contact Form Submission: ${subject}`,
-      html: `
+      // Admin notification
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: process.env.ADMIN_EMAIL || process.env.EMAIL_USER,
+        subject: `New Contact Form Submission: ${subject}`,
+        html: `
         <h3>New Contact Form Submission</h3>
         <p><strong>Name:</strong> ${name}</p>
         <p><strong>Email:</strong> ${email}</p>
@@ -43,16 +46,16 @@ exports.submitContactForm = async (req, res, next) => {
         <p><strong>Message:</strong></p>
         <p>${message}</p>
       `,
-    }
+      }
 
-    await transporter.sendMail(mailOptions)
+      await transporter.sendMail(mailOptions)
 
-    // Send auto-reply to user
-    const autoReplyOptions = {
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: `Thank you for contacting Brushes and Beyond`,
-      html: `
+      // Auto-reply to user
+      const autoReplyOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: `Thank you for contacting Brushes and Beyond`,
+        html: `
         <h3>Thank you for contacting Brushes and Beyond</h3>
         <p>Dear ${name},</p>
         <p>We have received your message and will get back to you as soon as possible.</p>
@@ -63,9 +66,13 @@ exports.submitContactForm = async (req, res, next) => {
         <p>Best regards,</p>
         <p>The Brushes and Beyond Team</p>
       `,
-    }
+      }
 
-    await transporter.sendMail(autoReplyOptions)
+      await transporter.sendMail(autoReplyOptions)
+    } catch (emailError) {
+      console.error("Email sending failed:", emailError)
+      // Don't fail the request if email sending fails
+    }
 
     res.status(201).json({
       success: true,
@@ -111,28 +118,33 @@ exports.updateContactStatus = async (req, res, next) => {
       }
 
       // Send response email to user
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      })
+      try {
+        const transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+        })
 
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: contact.email,
-        subject: `Re: ${contact.subject}`,
-        html: `
+        const mailOptions = {
+          from: process.env.EMAIL_USER,
+          to: contact.email,
+          subject: `Re: ${contact.subject}`,
+          html: `
           <h3>Response to your inquiry</h3>
           <p>Dear ${contact.name},</p>
           <p>${responseText}</p>
           <p>Best regards,</p>
           <p>The Brushes and Beyond Team</p>
         `,
-      }
+        }
 
-      await transporter.sendMail(mailOptions)
+        await transporter.sendMail(mailOptions)
+      } catch (emailError) {
+        console.error("Response email sending failed:", emailError)
+        // Don't fail the request if email sending fails
+      }
     }
 
     const updatedContact = await contact.save()
